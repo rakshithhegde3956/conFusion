@@ -2,7 +2,7 @@ const express = require('express');
 
 const bodyparser = require('body-parser');
 
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
 
 const Dishes = require('../models/dishes');
 
@@ -80,5 +80,155 @@ dishRouter.route('/:dishID')
     .catch((err) => next(err));
 })
 
+
+dishRouter.route('/:dishID/comments')
+.get((req, res, next) => {
+    Dishes.findById(req.params.dishID)
+    .then((dish) => {
+        if(dish!= null) {  
+            res.statusCode = 200;
+            res.setHeader('Content-type', 'application/json');
+            res.json(dish.comments);
+        }
+        else {
+            err= new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.post((req, res, next) => {
+    Dishes.findById(req.params.dishID)
+    .then((dish) => {
+        if(dish!= null) {  
+            dish.comments.push(req.body);
+            dish.save()
+            .then((dish) =>{
+                res.statusCode = 200;
+                res.setHeader('Content-type', 'application/json');
+                res.json(dish);
+            }, (err) => next(err))
+        }
+        else {
+            err= new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.put((req, res, next) => {
+    res.statusCode = 403;
+    res.setHeader('Content-type', 'text/plain-text');
+    res.end("PUT action not supported");
+})
+.delete((req, res, next) => {
+    Dishes.findById(req.params.dishID)
+    .then((dish) => {
+        if(dish!= null) {  
+            for (val = (dish.comments.length-1); val>=0; val--){
+                dish.comments.id(dish.comments[val]._id).remove();
+            }
+            dish.save()
+            .then((dish) => {
+                res.statusCode = 200;
+                res.setHeader('Content-type', 'application/json');
+                res.json(dish);
+
+            }, (err)=> next(err));
+        }
+        else {
+            err= new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+
+dishRouter.route('/:dishID/comments/:commentID')
+.get((req, res, next) => {
+    Dishes.findById(req.params.dishID)
+    .then((dish) => {
+        if(dish!= null) {  
+            res.statusCode = 200;
+            res.setHeader('Content-type', 'application/json');
+            res.json(dish.comments.id(req.params.commentID));
+        }
+        else if (dish==null){
+            err= new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+        else {
+            err = new Error('Comment ' + req.params.commentID+ ' not found');
+            err.status = 404;
+            return next(err);           
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.post((req, res, next) => {
+    res.statusCode = 403;
+    res.setHeader('Content-type', 'text/plain-text');
+    res.end("POST action not supported");
+})
+.put((req, res, next) => {    
+    Dishes.findById(req.params.dishID)
+    .then((dish) => {
+        if(dish!= null && dish.comments.id(req.params.commentID) != null) {  
+            if(req.body.rating) {
+                dish.comments.id(req.params.commentID).rating= req.body.rating;
+            }
+            if(req.body.comment) {
+                dish.comments.id(req.params.commentID).comment= req.body.comment;
+            }
+            dish.save()
+            .then((dish) => {
+                res.statusCode = 200;
+                res.setHeader('Content-type', 'application/json');
+                res.json(dish);
+            }, (err) => next(err))
+        }
+        else if (dish==null){
+            err= new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+        else {
+            err = new Error('Comment ' + req.params.commentID + ' not found');
+            err.status = 404;
+            return next(err);           
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+
+.delete((req, res, next) => {
+    Dishes.findById(req.params.dishId)
+    .then((dish) => {
+        if (dish != null && dish.comments.id(req.params.commentID) != null) {
+            dish.comments.id(req.params.commentID).remove();
+            dish.save()
+            .then((dish) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish);                
+            }, (err) => next(err));
+        }
+        else if (dish == null) {
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+        else {
+            err = new Error('Comment ' + req.params.commentID + ' not found');
+            err.status = 404;
+            return next(err);            
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+});
 
 module.exports = dishRouter;
