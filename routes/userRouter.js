@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+var authenticate = require('../authenticate');
 
 const bodyParser = require('body-parser');
 const User = require('../models/users');
@@ -22,10 +23,24 @@ router.post('/signup', (req,res,next) => {
       res.json({err: err});
     }
     else {
-      passport.authenticate('local') (req,res,() => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json({success: true, status: 'Registration Successful!'});
+      if(req.body.firstName){
+        user.firstName = req.body.firstName;
+      }
+      if(req.body.lastName){
+        user.lastName = req.body.lastName;
+      }
+      user.save((err, user) => {
+        if(err) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.json({err: err});
+          return;
+        }
+        passport.authenticate('local') (req,res,() => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.json({success: true, status: 'Registration Successful!'});
+        });
       });
     }
   });
@@ -33,9 +48,10 @@ router.post('/signup', (req,res,next) => {
 
 
 router.post('/login', passport.authenticate('local'), (req, res) => {
+  var token = authenticate.getToken({ _id : req.user._id})
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json');
-  res.json({success: true, status: 'Login successful!'});
+  res.json({success: true, token: token, status: 'Login successful!'});
 });
 
 
